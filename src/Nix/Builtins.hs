@@ -315,11 +315,17 @@ nixPath :: MonadNix e m => m (NValue m)
 nixPath = fmap nvList $ flip foldNixPath [] $ \p mn ty rest ->
     pure $ valueThunk
         (flip nvSet mempty $ M.fromList
-            [ case ty of
-                PathEntryPath -> ("path", valueThunk $ nvPath p)
-                PathEntryURI ->  ("uri",  valueThunk $ nvStr (hackyMakeNixStringWithoutContext (Text.pack p)))
-            , ("prefix", valueThunk $
-                   nvStr (hackyMakeNixStringWithoutContext $ Text.pack (fromMaybe "" mn))) ]) : rest
+          [ case ty of
+              PathEntryPath -> ("path", valueThunk $ nvPath p)
+              PathEntryURI ->
+                ("uri"
+                ,  valueThunk $ nvStr (principledMakeNixStringWithoutContext (Text.pack p))
+                )
+          , ("prefix"
+            , valueThunk $ nvStr (principledMakeNixStringWithoutContext $ Text.pack (fromMaybe "" mn))
+            )
+          ]
+        ) : rest
 
 toString :: MonadNix e m => m (NValue m) -> m (NValue m)
 toString str = str >>= coerceToString DontCopyToStore CoerceAny >>= toNix
